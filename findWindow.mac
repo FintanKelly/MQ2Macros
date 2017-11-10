@@ -1,0 +1,11 @@
+Sub main
+
+	/declare windowCounter int
+	
+	/for windowCounter 1 to ${Math.Calc[${Ini[windowList.ini, winList,,].Count[|]}]}
+		/if (${Window[${Ini[windowList.ini, winList,,].Arg[${windowCounter},|]}].MouseOver}) {
+			/echo ${Window[${Ini[windowList.ini, winList,,].Arg[${windowCounter},|]}].Text}
+		}
+	/next windowCounter
+
+/return

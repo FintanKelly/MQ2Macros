@@ -1,0 +1,13 @@
+|**
+	Sell Items
+	Harmtouch/Illiad
+**|
+
+| Include List
+#include miscSub.inc
+
+Sub main
+
+	/call sellItems 7000000
+
+/return

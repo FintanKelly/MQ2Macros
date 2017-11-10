@@ -1,0 +1,15 @@
+Sub main
+
+	/declare npcLoop int
+
+	/for npcLoop 1 to ${SpawnCount[npc targetable]}
+		/if ((${NearestSpawn[${npcLoop}].Name.Find[moldering]}) || (${NearestSpawn[${npcLoop}].Name.Find[judicator]})) {
+			/tar id ${NearestSpawn[${npcLoop}].ID}
+			/delay 5
+
+			/click right
+			/delay 5
+		}
+	/next npcLoop
+
+/return

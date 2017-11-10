@@ -1,0 +1,76 @@
+|**
+	Pet Kill Macro
+	Harmtouch/Illiad
+**|
+
+| Events
+#Event petAttack "#1# tells you, 'Attacking #2# Master.'"
+#Event inviteToGroup "#1# tells you, 'invite'"
+
+Sub main
+	
+	/declare petAttacking bool outer
+
+	/declare npcCounter int
+	/declare npcID int
+	/declare clearCorpses bool
+
+	:Search
+		/for npcCounter 1 to ${SpawnCount}
+			/varset npcID ${NearestSpawn[${npcCounter}].ID}
+			
+			| /echo Found ${SpawnCount} mobs.
+
+			| (${Select[${Spawn[${npcID}].ConColor}, "BLUE", "WHITE", "GOLD"]})
+			| (${Spawn[${npcID}].Name.Find[#]} == NULL)
+			/if ((${npcID} != ${Me.ID}) && (${Spawn[${npcID}].Type.NotEqual[PET]}) && (${Spawn[${npcID}].Type.NotEqual[CORPSE]}) && (${Spawn[${npcID}].Type.NotEqual[PC]}) && (${Spawn[${npcID}].PctHPs} == 100) && ((${Spawn[${npcID}].Name.Find[#]} != NULL) || ${Spawn[${npcID}].X} == 18.13)) {
+				/if (${Math.Abs[${Spawn[1].Pet.Distance3D} - ${Spawn[${npcID}].Distance3D}]} <= 170) {
+					| /echo Killing ${Spawn[${npcID}].CleanName}
+
+					/tar id ${npcID}
+					/delay 2
+
+					/pet attack
+					/delay 5
+
+					/doevents
+					/delay 5
+					
+					/if (${petAttacking}) {
+						:KillMob
+							/if (${Spawn[${npcID}].Type.NotEqual[CORPSE]}) {
+								/goto :KillMob
+							}
+
+							/varset petAttacking false
+							/varset clearCorpses true
+						| End of :KillMob
+					}
+				}
+			}
+		/next npcCounter
+
+		/if (${clearCorpses}) {
+			/hidec all
+			/delay 2
+			/hidec looted
+
+			/varset clearCorpses false
+		}
+	/goto :Search
+	| End of :Search
+
+/return
+
+Sub Event_petAttack(fullLine, petName, target)
+
+	/varset petAttacking true
+
+/return
+
+Sub Event_inviteToGroup(fullLine, playerName)
+
+	/delay 5
+	/invite ${MacroQuest.LastTell}
+
+/return

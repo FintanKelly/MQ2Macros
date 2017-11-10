@@ -1,0 +1,17 @@
+Sub main
+
+	/declare loopCounter int
+	
+	/for loopCounter 1 to 88
+		/notify NewPointMerchantWnd NewPointMerchant_ItemList listselect ${Window[NewPointMerchantWnd].Child[NewPointMerchant_ItemList].List[=Collection Bag]}
+		/notify NewPointMerchantWnd NewPointMerchant_ItemList leftmouseup ${Window[NewPointMerchantWnd].Child[NewPointMerchant_ItemList].List[=Collection Bag]}
+		/delay 1s
+		
+		/notify NewPointMerchantWnd NewPointMerchant_PurchaseButton leftmouseup
+		/delay 1s
+		
+		/autoinv
+		/delay 1s
+	/next loopCounter
+
+/return

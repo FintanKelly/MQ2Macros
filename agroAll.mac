@@ -1,0 +1,13 @@
+Sub main
+
+	/declare npcLoop int
+
+	/for npcLoop 1 to ${SpawnCount[npc targetable]}
+		/tar id ${NearestSpawn[${npcLoop}, npc targetable].ID}
+		/delay 5
+
+		/click right
+		/delay 5
+	/next npcLoop
+
+/return

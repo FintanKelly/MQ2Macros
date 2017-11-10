@@ -1,0 +1,491 @@
+|**
+	Trader Macro
+	Vixenary
+**|
+
+| Ping Limiter
+#turbo
+
+| Chat Detection
+#chat tell
+
+Sub main
+
+	:IdleLoop
+		/doevents
+
+		/delay 1s
+
+		/goto :IdleLoop
+	| End of :IdleLoop
+
+/return
+
+|**
+	I catch the chat messages here and then figure out which channel I need to reply on.
+	I delete the first and last 2 characters of the "Sender" because they are void characters and not actually apart of the player's name.
+**|
+Sub Event_Chat(ChatChannel, Sender, ChatText)
+	
+	/varset Sender ${Sender.Right[-2].Left[-1]}
+
+	/if (${ChatText.Find[<]} || ${ChatText.Find[[]} || ${ChatText.Find[]]}) {
+		/tell ${Sender} You do not need to use '<', '[', or ']' in the actual queries.
+	} else /if (${ChatText.Equal[Help]}) {
+		/tell ${Sender} Commands: 'Help', 'Item Type List', 'Personal <1-8> (Horizontal)', 'Bank <1-24> (Vertical)', 'SharedBank <1-2> (Horizontal)'
+		/delay 3s
+		/tell ${Sender} 'FindItem <Innoruuk's Curse>', 'FindClass <SHD>', 'FindItemType <1H-Slashing> [SHD] [AC:150]', 'Trade <Personal/Bank/SharedBank> <1-8/1-24/1-2> <1-10>'
+		/delay 3s
+		/tell ${Sender} 'Drop Location <Innoruuk's Curse>'
+	} else /if (${ChatText.Arg[1, ].Equal[Personal]}) {
+		/call displayContents ${Sender} Personal ${ChatText.Arg[2, ]}
+	} else /if (${ChatText.Arg[1, ].Equal[Bank]}) {
+		/call displayContents ${Sender} Bank ${ChatText.Arg[2, ]}
+	} else /if (${ChatText.Arg[1, ].Equal[SharedBank]}) {
+		/call displayContents ${Sender} SharedBank ${ChatText.Arg[2, ]}
+	} else /if (${ChatText.Arg[1, ].Equal[FindItem]}) {
+		/call findItem ${Sender} "${ChatText.Mid[9, ${Int[${Math.Calc[${ChatText.Length} - 8]}]}]}"
+	} else /if (${ChatText.Arg[1, ].Equal[FindClass]}) {
+		/call findClass ${Sender} ${ChatText.Mid[10, ${Int[${Math.Calc[${ChatText.Length} - 9]}]}]}
+	} else /if (${ChatText.Arg[1, ].Equal[FindItemType]}) {
+		/call findItemType ${Sender} ${ChatText.Arg[2, ]} ${ChatText.Arg[3, ]} ${ChatText.Arg[4, ]}
+	} else /if (${ChatText.Equal[Item Type List]}) {
+		/tell ${Sender} ItemTypes: 1H-Slashing, 2H-Slashing, 1H-Blunt, 2H-Blunt, Piercing, 2H-Piercing, Martial, Archery, Armor, Jewelry, Charm
+	} else /if (${ChatText.Arg[1, ].Equal[Trade]}) {
+		/call tradeItem ${Sender} ${ChatText.Arg[2, ]} ${ChatText.Arg[3, ]} ${ChatText.Arg[4, ]}
+	} else /if (${ChatText.Arg[1, ].Equal[Drop]}) {
+		/call findDrop ${Sender} "${ChatText.Mid[15, ${Int[${Math.Calc[${ChatText.Length} - 14]}]}]}"
+	} else {
+		/tell ${Sender} I'm currently running my trading macro. Type 'Help' for the command list. If you need something else, then send a tell to Vixenary.
+	}
+
+	/delay 1s
+
+/return
+
+|**
+	This will take a message and type it out.
+**|
+Sub typeMessage(Message)
+
+	/declare messageLoop int
+
+	/keypress enter
+	/delay 2
+
+	/for messageLoop 1 to ${Message.Length}
+		/if (${Message.Mid[${messageLoop}, 1].NotEqual[" "]}) {
+			/if (${Message.Mid[${messageLoop}, 1].CompareCS[${Message.Mid[${messageLoop}, 1].Lower}]} == -1) {
+				/shift /keypress ${Message.Mid[${messageLoop}, 1]} chat
+			} else {
+				/keypress ${Message.Mid[${messageLoop}, 1]} chat
+			}
+		} else {
+			/keypress Space chat
+		}
+
+		/delay 2
+	/next messageLoop
+
+/return
+
+|**
+	This will send a tell to the user and add in a delay to avoid overflow.
+**|
+Sub linkItem(Player, inventoryType, bagSlot, itemSlot)
+
+	/call typeMessage "/tell ${Player} ${inventoryType} Bag ${bagSlot} Slot ${itemSlot}: "
+
+	/if (${inventoryType.Equal[Personal]}) {
+		/itemnotify in pack${bagSlot} ${itemSlot} rightmouseheld
+	} else /if (${inventoryType.Equal[Bank]}) {
+		/itemnotify in bank${bagSlot} ${itemSlot} rightmouseheld
+	} else /if (${inventoryType.Equal[SharedBank]}) {
+		/itemnotify in sharedbank${bagSlot} ${itemSlot} rightmouseheld
+	}
+	/delay 5
+
+	/notify ItemDisplayWindow IDW_IconButton leftmouseup
+	/delay 5
+
+	/keypress enter chat
+	/delay 5
+
+	/if (${Window[ItemDisplayWindow].Open}) {
+		/keypress esc
+		/delay 5
+	}
+
+/return
+
+|**
+	This will take a bag index and then attempt to open that bag.
+**|
+Sub openBag(inventoryType, bagSlot)
+
+	/if (${inventoryType.Equal[Personal]}) {
+		/if (!${Window[pack${bagSlot}].Open}) {
+			/itemnotify pack${bagSlot} rightmouseup
+			/delay 5
+		}
+	} else /if (${inventoryType.Equal[Bank]}) {
+		/if (!${Window[bank${bagSlot}].Open}) {
+			/itemnotify bank${bagSlot} rightmouseup
+			/delay 5
+		}
+	} else /if (${inventoryType.Equal[SharedBank]}) {
+		/if (!${Window[sharedbank${bagSlot}].Open}) {
+			/itemnotify sharedbank${bagSlot} rightmouseup
+			/delay 5
+		}
+	}
+
+/return
+
+|**
+	This will output the contents of a bag in a tell.
+**|
+Sub displayContents(Sender, inventoryType, bagSlot)
+
+	/declare bagLoop int
+
+	/if ((!${inventoryType.NotEqual[NULL]}) || (!${bagSlot})) {
+		/tell ${Sender} Please provide a bag number.
+		/delay 1s
+
+		/return
+	}
+
+	/if (${inventoryType.Equal[Personal]}) {
+		/for bagLoop 1 to ${Me.Inventory[pack${bagSlot}].Container}
+			/if (${Me.Inventory[pack${bagSlot}].Item[${bagLoop}].ID}) {
+				/call openBag Personal ${bagSlot}
+				/call linkItem ${Sender} ${inventoryType} ${bagSlot} ${bagLoop}
+			}
+		/next bagLoop
+	} else /if (${inventoryType.Equal[Bank]}) {
+		/for bagLoop 1 to ${Me.Bank[${bagSlot}].Container}
+			/if (${Me.Bank[${bagSlot}].Item[${bagLoop}].ID}) {
+				/call openBag Bank ${bagSlot}
+				/call linkItem ${Sender} ${inventoryType} ${bagSlot} ${bagLoop}
+			}
+		/next bagLoop
+	} else /if (${inventoryType.Equal[SharedBank]}) {
+		/for bagLoop 1 to ${Me.Bank[${bagSlot}].Container}
+			/if (${Me.Bank[${Int[${Math.Calc[${bagSlot} + 24]}]}].Item[${bagLoop}].ID}) {
+				/call openBag SharedBank ${bagSlot}
+				/call linkItem ${Sender} ${inventoryType} ${bagSlot} ${bagLoop}
+			}
+		/next bagLoop
+	}
+
+	/delay 5
+
+	/tell ${Sender} That is all I found.
+	/delay 1s
+
+	/keypress esc
+	/delay 5
+
+/return
+
+|**
+	This will trade items with players and then return to the banker.
+**|
+Sub tradeItem(Player, inventoryType, bagSlot, itemSlot)
+
+	/if (!${Spawn[${Player}].ID}) {
+		/tell ${Player} Please make sure you're in the bazaar to trade with me.
+		/delay 3s
+
+		/return
+	}
+
+	/if (${inventoryType.Equal[NULL]} || !${bagSlot} || !${itemSlot}) {
+		/tell ${Player} Please make sure you provide the inventory type, bag slot, and item slot.
+		/delay 1s
+
+		/return
+	} else /if (!${Spawn[${Player}].ID}) {
+		/tell ${Player} Please make sure you're in the bazaar if you want to trade with me.
+		/delay 1s
+
+		/return
+	}
+
+	/call openBag ${inventoryType} ${bagSlot}
+
+	/if (${inventoryType.Equal[Personal]}) {
+		/itemnotify in pack${bagSlot} ${itemSlot} leftmouseup
+	} else /if (${inventoryType.Equal[Bank]}) {
+		/itemnotify in bank${bagSlot} ${itemSlot} leftmouseup
+	} else /if (${inventoryType.Equal[SharedBank]}) {
+		/itemnotify in sharedbank${bagSlot} ${itemSlot} leftmouseup
+	}
+	/delay 5
+
+	/if (${Window[BigBankWnd].Open}) {
+		/notify BigBankWnd BIGB_DoneButton leftmouseup
+		/delay 2
+	}
+
+	/tar id ${NearestSpawn[pc ${Player}].ID}
+	/delay 2
+
+	/stick
+	/delay 5s (${Target.Distance} <= 5)
+
+	/click left target
+	/delay 1s
+
+	/notify TradeWnd TRDW_Trade_Button leftmouseup
+	/delay 5s (${Window[TradeWnd].HisTradeReady})
+
+	/target id ${Spawn[Master of Coin].ID}
+	/stick
+	/delay 5s (${Target.Distance} <= 10)
+
+	/click right target
+	/delay 5
+
+/return
+
+|**
+	This will search for an item by name and check if I have it in my bags or bank.
+**|
+Sub findItem(Player, itemName)
+
+	/if (${itemName.NotEqual[NULL]}) {
+		/if (${FindItem[${itemName}].ID}) {
+			/tell ${Player} ${FindItem[${itemName}]} is in personal bag ${Int[${Math.Calc[${FindItem[${itemName}].ItemSlot} - 22]}]}, slot ${Int[${Math.Calc[${FindItem[${itemName}].ItemSlot2} + 1]}]}.
+		} else /if (${FindItemBank[${itemName}].ID}) {
+			/tell ${Player} ${FindItemBank[${itemName}]} is in bank bag ${Int[${Math.Calc[${FindItemBank[${itemName}].ItemSlot} + 1]}]}, slot ${Int[${Math.Calc[${FindItemBank[${itemName}].ItemSlot2} + 1]}]}.
+		} else {
+			/tell ${Player} It seems that I don't have ${itemName}.
+		}
+	} else {
+		/tell ${Player} Make sure you give me an item name to search for.
+	}
+
+	/delay 1s
+
+/return
+
+|**
+	This will search for all items of a specific class.
+**|
+Sub findClass(Player, playerClass)
+
+	/declare bagLoop int
+	/declare itemLoop int
+
+	/if ((${playerClass.NotEqual[NULL]}) && (${playerClass.Length} == 3)) {
+		/for bagLoop 1 to 8
+			/call openBag Personal ${bagLoop}
+
+			/for itemLoop 1 to ${Me.Inventory[pack${bagLoop}].Container}
+				/if (${Me.Inventory[pack${bagLoop}].Item[${itemLoop}].Class[${playerClass}].Name.NotEqual[NULL]}) {
+					/call linkItem ${Player} Personal ${bagLoop} ${itemLoop}
+				}
+			/next itemLoop
+
+			/keypress esc
+			/delay 5
+		/next bagLoop
+
+		/for bagLoop 1 to 24
+			/call openBag Bank ${bagLoop}
+
+			/for itemLoop 1 to ${Me.Bank[${bagLoop}].Container}
+				/if (${Me.Bank[${bagLoop}].Item[${itemLoop}].Class[${playerClass}].Name.NotEqual[NULL]}) {
+					/call linkItem ${Player} Bank ${bagLoop} ${itemLoop}
+				}
+			/next itemLoop
+
+			/keypress esc
+			/delay 5
+		/next bagLoop
+
+		/for bagLoop 1 to 2
+			/call openBag SharedBank ${bagLoop}
+
+			/for itemLoop 1 to ${Me.Bank[${bagLoop}].Container}
+				/if (${Me.Bank[${Int[${Math.Calc[${bagLoop} + 24]}]}].Item[${itemLoop}].Class[${playerClass}].Name.NotEqual[NULL]}) {
+					/call linkItem ${Player} SharedBank ${bagLoop} ${itemLoop}
+				}
+			/next itemLoop
+
+			/keypress esc
+			/delay 5
+		/next bagLoop
+
+		/tell ${Player} That is all I found.
+		/delay 1s
+	} else {
+		/tell ${Player} Make sure you specify a class to search for (SHD/PAL).
+	}
+
+	/delay 1s
+
+/return
+
+|**
+	This will take an item type and then search for those specific items.
+	ItemTypes: 1H Slashing, 2H Slashing, 1H Blunt, 2H Blunt, Piercing, 2H Piercing, Martial, Archery, Armor, Jewelry, Charm
+**|
+Sub findItemType(Player, itemType, playerClass, statMod)
+
+	/declare bagLoop int
+	/declare itemLoop int
+
+	/if (${itemType.NotEqual[NULL]}) {
+		/if (!${Select[${itemType}, 1H-Slashing, 2H-Slashing, 1H-Blunt, 2H-Blunt, Piercing, 2H-Piercing, Martial, Archery, Armor, Jewelry, Charm]}) {
+			/tell ${Player} You forgot to specify an item type (1H-Slashing, 2H-Slashing, 1H-Blunt, 2H-Blunt, Piercing, 2H-Piercing, Martial, Archery, Armor, Jewelry, or Charm).
+			/return
+		}
+		/if (${playerClass.Length} != 3) {
+			/tell ${Player} You need to specify a class using its short name (SHD/PAL).
+			/return
+		}
+
+		/if (${itemType.Find[-]}) {
+			/varset itemType ${itemType.Replace[-, ]}
+		}
+
+		/for bagLoop 1 to 8
+			/call openBag Personal ${bagLoop}
+
+			/for itemLoop 1 to ${Me.Inventory[pack${bagLoop}].Container}
+				/if (${Me.Inventory[pack${bagLoop}].Item[${itemLoop}].Type.Equal[${itemType}]}) {
+					/if (${playerClass.NotEqual[NULL]}) {
+						/if (${Me.Inventory[pack${bagLoop}].Item[${itemLoop}].Class[${playerClass}].Name.NotEqual[NULL]}) {
+							/if (${statMod.NotEqual[NULL]}) {
+								/if (${Me.Inventory[pack${bagLoop}].Item[${itemLoop}].${statMod.Arg[1,:]}} >= ${statMod.Arg[2,:]}) {
+									/call linkItem ${Player} Personal ${bagLoop} ${itemLoop}
+								}
+							} else {
+								/call linkItem ${Player} Personal ${bagLoop} ${itemLoop}
+							}
+						}
+					} else {
+						/call linkItem ${Player} Personal ${bagLoop} ${itemLoop}
+					}
+				}
+			/next itemLoop
+
+			/keypress esc
+			/delay 5
+		/next bagLoop
+
+		/for bagLoop 1 to 24
+			/call openBag Bank ${bagLoop}
+
+			/for itemLoop 1 to ${Me.Bank[${bagLoop}].Container}
+				/if (${Me.Bank[${bagLoop}].Item[${itemLoop}].Type.Equal[${itemType}]}) {
+					/if (${playerClass.NotEqual[NULL]}) {
+						/if (${Me.Bank[${bagLoop}].Item[${itemLoop}].Class[${playerClass}].Name.NotEqual[NULL]}) {
+							/if (${statMod.NotEqual[NULL]}) {
+								/if (${Me.Bank[${bagLoop}].Item[${itemLoop}].${statMod.Arg[1,:]}} >= ${statMod.Arg[2,:]}) {
+									/call linkItem ${Player} Bank ${bagLoop} ${itemLoop}
+								}
+							} else {
+								/call linkItem ${Player} Bank ${bagLoop} ${itemLoop}
+							}
+						}
+					} else {
+						/call linkItem ${Player} Bank ${bagLoop} ${itemLoop}
+					}
+				}
+			/next itemLoop
+
+			/keypress esc
+			/delay 5
+		/next bagLoop
+
+		/for bagLoop 1 to 2
+			/call openBag SharedBank ${bagLoop}
+
+			/for itemLoop 1 to ${Me.Bank[${bagLoop}].Container}
+				/if (${Me.Bank[${Int[${Math.Calc[${bagLoop} + 24]}]}].Item[${itemLoop}].Type.Equal[${itemType}]}) {
+					/if (${playerClass.Length}) {
+						/if (${Me.Bank[${Int[${Math.Calc[${bagLoop} + 24]}]}].Item[${itemLoop}].Class[${playerClass}].Name.NotEqual[NULL]}) {
+							/if (${statMod.NotEqual[NULL]}) {
+								/if (${Me.Bank[${Int[${Math.Calc[${bagLoop} + 24]}]}].Item[${itemLoop}].${statMod.Arg[1,:]}} >= ${statMod.Arg[2,:]}) {
+									/call linkItem ${Player} SharedBank ${bagLoop} ${itemLoop}
+								}
+							} else {
+								/call linkItem ${Player} SharedBank ${bagLoop} ${itemLoop}
+							}
+						}
+					} else {
+						/call linkItem ${Player} SharedBank ${bagLoop} ${itemLoop}
+					}
+				}
+			/next itemLoop
+
+			/keypress esc
+			/delay 5
+		/next bagLoop
+
+		/tell ${Player} That is all I found.
+		/delay 1s
+	} else {
+		/tell ${Player} Make sure you specify an item type to search for.
+	}
+
+	/delay 1s
+
+/return
+
+|**
+	This will take an item name and see if I have it in my drop list.
+**|
+Sub findDrop(Player, itemName)
+
+	/declare iniLoop int 1
+	/declare itemFound bool false
+	/declare dropCount int
+	/declare dropLoop int
+
+	:LoopIni
+	/if (${Ini[dropList.ini, dropList${iniLoop}].Count[|]} >= 70) {
+		/varset dropCount ${Ini[dropList.ini, dropList${iniLoop}].Count[|]}
+
+		/for dropLoop 1 to ${Math.Calc[${dropCount} - 1]}
+			/if (${Ini[dropList.ini, dropList${iniLoop}].Arg[${dropLoop},|].Find[${itemName}]}) {
+				/if (!${itemFound}) {
+					/varset itemFound true
+				}
+
+				/tell ${Player} ${Ini[dropList.ini, dropList${iniLoop}].Arg[${dropLoop},|]} drops in ${Ini[dropList.ini, dropList${iniLoop}, ${Ini[dropList.ini, dropList${iniLoop}].Arg[${dropLoop},|]},Unknown].Arg[1,,]} off of ${Ini[dropList.ini, dropList${iniLoop}, ${Ini[dropList.ini, dropList${iniLoop}].Arg[${dropLoop},|]},Unknown].Arg[2,,]}
+				/delay 3s
+			}
+		/next dropLoop
+
+		/varset iniLoop ${Math.Calc[${iniLoop} + 1]}
+		/goto :LoopIni
+	} else {
+		/varset dropCount ${Ini[dropList.ini, dropList${iniLoop}].Count[|]}
+
+		/for dropLoop 1 to ${Math.Calc[${dropCount} - 1]}
+			/if (${Ini[dropList.ini, dropList${iniLoop}].Arg[${dropLoop},|].Find[${itemName}]}) {
+				/if (!${itemFound}) {
+					/varset itemFound true
+				}
+
+				/tell ${Player} ${Ini[dropList.ini, dropList${iniLoop}].Arg[${dropLoop},|]} drops in ${Ini[dropList.ini, dropList${iniLoop}, ${Ini[dropList.ini, dropList${iniLoop}].Arg[${dropLoop},|]},Unknown].Arg[1,,]} off of ${Ini[dropList.ini, dropList${iniLoop}, ${Ini[dropList.ini, dropList${iniLoop}].Arg[${dropLoop},|]},Unknown].Arg[2,,]}
+				/delay 3s
+			}
+		/next dropLoop
+	}
+	| End of :LoopIni
+
+	/if (!${itemFound}) {
+		/tell ${Player} It seems I don't have that item catalogued at the moment.
+		/delay 3s
+	} else {
+		/tell ${Player} Those are all the locations I have for this item.
+		/delay 3s
+	}
+
+/return

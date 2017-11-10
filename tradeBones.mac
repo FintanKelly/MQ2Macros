@@ -1,0 +1,45 @@
+#Event decision "Vixenary tells you, '#1'"
+
+Sub main
+
+	/declare destroyItem bool outer true
+
+	:TradeBones
+		/if (!${FindItem[Bone Chips].InvSlot.Name}) {
+			/ctrl /itemnotify in pack${Int[${Math.Calc[${FindItem[Bone Chips].ItemSlot} - 22]}]} ${Int[${Math.Calc[${FindItem[Bone Chips].ItemSlot2} + 1]}]} leftmouseup
+
+			:TurnIn
+			/delay 5
+			/if (${Target.Name.NotEqual[Master of Transfiguration]}) {
+				/tar Master of Transfiguration
+				/delay 5
+			}
+			/click left target
+			/delay 5
+			/notify GiveWnd GVW_Give_Button leftmouseup
+			/delay 5
+			| End of :TurnIn
+
+			/if (${Cursor.ID}) {
+				/if (((${Cursor.Class[Paladin].Name.Length}) && (!${Cursor.Stackable}) && (${Select[${Cursor.Type}, Armor, 1H Slashing, 2H Slashing, 1H Blunt, 2H Blunt, 2H Piercing]}) && (${Cursor.AC} >= 150)) || (${Cursor.Value} >= 5000000)) {
+					/autoinv
+				} else {
+					/goto :TurnIn
+				}
+			}
+
+			/goto :TradeBones
+		}
+	| End of :TradeBones
+
+/return
+
+Sub Event_decision(fullLine, key)
+
+	/if (${key.Equal[No]}) {
+		/varset destroyItem false
+	} else {
+		/varset destroyItem true
+	}
+
+/return

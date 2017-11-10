@@ -1,0 +1,79 @@
+|**
+	Catalogue Loot Drops
+	Vixenary
+**|
+
+Sub main
+
+	/declare checkOnce bool outer false
+
+	:WaitForLoot
+		/if ((${Window[LootWnd].Open}) && (!${checkOnce})) {
+			/varset checkOnce true
+
+			/delay 3
+
+			/call checkLoot
+		} else /if ((!${Window[LootWnd].Open}) && (${checkOnce})) {
+			/varset checkOnce false
+		}
+
+		/goto :WaitForLoot
+	| End of :WaitForLoot
+/return
+
+|**
+	This takes the npc ID of the mob's corpse that you want to loot,
+	and then loots it.
+**|
+sub checkLoot
+
+	| Local Variables
+	/declare iniLoop int 1
+	/declare mobName string
+	/declare lootCount int
+	/declare lootCounter int
+	/declare lootName string
+
+	/vardata lootCount Corpse.Items
+
+	/if (${Corpse.CleanName.Find['s corpse]}) {
+		/varset mobName ${Corpse.CleanName.Replace['s corpse,]}
+	} else /if (${Corpse.CleanName.Find[`s corpse]}) {
+		/varset mobName ${Corpse.CleanName.Replace[`s corpse,]}
+	}
+
+	| Lootz!
+	/if (${lootCount}) {
+		/for lootCounter 1 to ${lootCount}
+			/if (${Corpse.Item[${lootCounter}].ID}) {
+				/varset lootName ${Corpse.Item[${lootCounter}].Name}
+
+				:SearchIni
+				/if (${Ini[dropList.ini, dropList${iniLoop}].Count[|]} >= 70) {
+					/if ((${Ini[dropList.ini, dropList${iniLoop}, ${lootName},Unknown].Equal[Unknown]}) || (${Ini[dropList.ini, dropList${iniLoop}, ${lootName},Unknown].NotEqual[Unknown]} && (${Ini[dropList.ini, dropList${iniLoop}, ${lootName},Unknown].Arg[1,,].NotEqual[${Zone.ShortName}]})) || (${Ini[dropList.ini, dropList${iniLoop}, ${lootName},Unknown].NotEqual[Unknown]} && (!${Ini[dropList.ini, dropList${iniLoop}, ${lootName},Unknown].Arg[2,,].Find[${mobName}]}))) {
+						/varset iniLoop ${Int[${Math.Calc[${iniLoop} + 1]}]}
+
+						/goto :SearchIni
+					} else {
+						/echo Found item in drop list already.
+						/next lootCounter
+					}
+				} else {
+					/if ((${Ini[dropList.ini, dropList${iniLoop}, ${lootName},Unknown].Equal[Unknown]}) || (${Ini[dropList.ini, dropList${iniLoop}, ${lootName},Unknown].NotEqual[Unknown]} && (${Ini[dropList.ini, dropList${iniLoop}, ${lootName},Unknown].Arg[1,,].NotEqual[${Zone.ShortName}]})) || (${Ini[dropList.ini, dropList${iniLoop}, ${lootName},Unknown].NotEqual[Unknown]} && (!${Ini[dropList.ini, dropList${iniLoop}, ${lootName},Unknown].Arg[2,,].Find[${mobName}]}))) {
+						/echo Added ${lootName} to bottom of drop list.
+
+						/ini "dropList.ini" "dropList${iniLoop}" "${lootName}" "${Zone.ShortName},${mobName}"
+					} else {
+						/echo Found item in drop list already.
+					}
+				}
+			}
+		/next lootCounter
+	} else {
+		/echo Mob Empty
+	}
+
+	/echo Done cataloguing
+
+/return

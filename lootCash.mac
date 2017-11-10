@@ -1,0 +1,21 @@
+|**
+	Loot Zone
+	Harmtouch/Illiad
+**|
+
+| Include List
+#include miscSub.inc
+
+Sub main
+
+	/declare corpseLoop int
+
+	:LootMobs
+		/for corpseLoop 1 to ${SpawnCount[corpse targetable radius 150]}
+			/if (${Ini[varList.ini, mobList, ${NearestSpawn[${corpseLoop}, corpse targetable].CleanName}, Negative].Equal[Cash]}) {
+				/call lootMob ${NearestSpawn[${corpseLoop}, corpse targetable].ID} "All" 10000000
+			}
+		/next corpseLoop
+	| End of :LootMobs
+
+/return

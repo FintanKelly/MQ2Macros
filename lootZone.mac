@@ -1,0 +1,21 @@
+|**
+	Loot Zone
+	Harmtouch/Illiad
+**|
+
+| Include List
+#include miscSub.inc
+
+Sub main
+
+	:LootMobs
+		/if (${SpawnCount[corpse targetable radius 150]}) {
+			/call lootMob ${NearestSpawn[corpse targetable].ID} "All" 10000000
+
+			/goto :LootMobs
+		} else {
+			/echo No corpses found nearby.
+		}
+	| End of :LootMobs
+
+/return

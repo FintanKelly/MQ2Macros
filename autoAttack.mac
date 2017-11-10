@@ -1,0 +1,36 @@
+|**
+	Auto Attack
+	Harmtouch/Illiad
+**|
+
+Sub main
+
+	:AutoAttack
+		/if (${SpawnCount[npc radius 40]}) {
+			/tar id ${NearestSpawn[npc radius 40].ID}
+
+			/if (${Target.ID}) {
+				/attack on
+				/delay 5
+
+				/stick 10
+				/delay 5
+
+				:KillNPC
+					/if (${Target.Type.NotEqual[CORPSE]}) {
+						/delay 1s
+
+						/goto :KillNPC
+					}
+
+					/if (${Zone.ShortName.Equal[soldungb]}) {
+						/say #zone ${Zone.ShortName} 355.64 -485.24 -79.90
+					}
+				| End of :KillNPC
+			}
+		}
+
+		/goto :AutoAttack
+	| End of :AutoAttack
+
+/return

@@ -1,0 +1,31 @@
+|**
+	Fighting Macro
+	Vixenary
+**|
+
+| Ping Limiter
+#turbo
+
+Sub main
+	
+	/declare attackOn bool false
+
+	:IdleLoop
+		/if (${Me.CombatState.Equal[COMBAT]}) {
+			/if (!${attackOn}) {
+				/attack on
+
+				/varset attackOn true
+			}
+			/if (${Me.AbilityReady[Bash]} && ${Cast.Status.Equal[I]} && ${Target.Distance} <= 15) {
+				/doability 1
+			}
+			/if (${Cast.Ready[Light's Torch]} && ${Cast.Status.Equal[I]}) {
+				/casting "Light's Torch|3" -maxtries|1
+			}
+		}
+
+		/goto :IdleLoop
+	| End of :IdleLoop
+
+/return

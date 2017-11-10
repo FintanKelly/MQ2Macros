@@ -1,0 +1,52 @@
+Sub main
+	
+	/declare invCounter int
+	/declare bagCounter int
+	/declare cleanUp int 0
+	
+	| Open all of the inventory bags
+	/for invCounter 1 to 8
+		/if (${Me.Inventory[pack${invCounter}].Container}) {
+			:OpenBag
+				/itemnotify pack${invCounter} rightmouseup
+				/delay 5 ${Window[pack${invCounter}].Open}
+				
+				/if (!${Window[pack${invCounter}].Open}) {
+					/goto :OpenBag
+				}
+			| End of :OpenBag
+		}
+	/next invCounter
+	
+	| Sell items!
+	:Sell
+		/for invCounter 1 to 8
+			/if (${Me.Inventory[pack${invCounter}].Container}) {
+				/for bagCounter 1 to ${Me.Inventory[pack${invCounter}].Container}					
+					/itemnotify in pack${invCounter} ${bagCounter} leftmouseup
+					/delay 3
+					/notify NewPointMerchantWnd NewPointMerchant_SellButton leftmouseup
+					/delay 5
+
+					/delay 8 !${Bool[${Me.Inventory[pack${invCounter}].Item[${bagCounter}]}]}
+				/next bagCounter
+			}
+			
+			/if (!${Me.Inventory[pack${invCounter}].Items}) {
+				/itemnotify pack${invCounter} leftmouseup
+				/delay 3
+				/notify NewPointMerchantWnd NewPointMerchant_SellButton leftmouseup
+				/delay 5
+
+				/delay 8 !${Me.Inventory[pack${invCounter}].Items}
+			}
+		/next invCounter
+		
+		| Loop again to catch missed items
+		/if (!${cleanUp}) {
+			/varset cleanUp 1
+			/goto :Sell
+		}
+	| End of :Sell
+
+/return

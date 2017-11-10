@@ -1,0 +1,73 @@
+|**
+	Ring Movement Test
+	Harmtouch/Illiad
+**|
+
+| Event List
+#Event eventClear "[MQ2] #1#"
+
+|**
+	Simple loop that keeps the rings poppin and moves the character when appropriate.
+**|
+Sub main
+
+	/ring
+
+	:Ring
+		/doevents
+
+		/if (${Select[${Ring.State}, SET, FAILED]}) {
+			/moveto loc ${Ring.X} ${Ring.Y} ${Ring.Z}
+
+			/ring
+		}
+	/goto :Ring
+	| End of :Ring
+
+/return
+
+|**
+	This uses the built-in clear command to remove all of the rings from the list.
+**|
+Sub Event_eventClear(fullLine, cmdText)
+
+	/if (${cmdText.Equal[Clear Rings]}) {
+		| /call manualClearRings
+		/rings delete
+	} else /if (${cmdText.Equal[End Macro]}) {
+		|**
+			This clears the pending ring and then cleans the list. By doing this, I circumvent the 'PENDING' state bug
+			by forcing an update when I delete the last ring in the list. This forces the state to become 'NONE,'
+			which is what we want for a 'clean' exit to the macro.
+		**|
+
+		/click right
+		/echo Clear Rings
+
+		/delay 1s
+
+		/end
+	}
+
+/return
+
+|**
+	This loops through the ring list using an iterator to remove each one independently.
+**|
+Sub manualClearRings
+
+	/echo Clearing Rings
+
+	/rings first
+
+	:RingLoop
+		/if (${Ring.Current.ID}) {
+			/echo Clearing Ring ${Ring.Current.ID}
+
+			/rings delete ${Ring.Current.ID}
+
+			/rings next
+		}
+	| End of :RingLoop
+
+/return
